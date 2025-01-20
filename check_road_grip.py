@@ -6,6 +6,8 @@ import os
 from atproto import Client
 import psycopg2
 
+from config import SENSOR_NAMES, CONDITION_CODES
+
 # postgres DB info
 USER = os.getenv("DB_USER")
 PASSWORD = os.getenv("DB_PASSWORD")
@@ -19,21 +21,8 @@ BSKY_PASSWORD = os.getenv("BSKY_PASSWORD")
 # Austin is in central timezone
 tz = ZoneInfo("America/Chicago")
 
+# json endpoint to open data portal
 API_URL = "https://data.austintexas.gov/resource/ypbq-i42h.json?$order=timestamp%20DESC&$limit=1"
-SENSOR_NAMES = [
-    {
-        "id": "2",
-        "name": "FM 2222 RD / LAKEWOOD DR",
-    },
-    {
-        "id": "3",
-        "name": "LAKELINE BLVD / 183 HWY SVRD",
-    },
-    {
-        "id": "4",
-        "name": "BEN WHITE BLVD SVRD / BANISTER LN",
-    },
-]
 
 
 def get_latest_data_from_sensor(sensor):
@@ -76,6 +65,11 @@ def main():
     for sensor in SENSOR_NAMES:
         tweet_text = None
         latest_data_from_sensor = get_latest_data_from_sensor(sensor)
+        if latest_data_from_sensor['condition_text_displayed'] in CONDITION_CODES:
+            condition = CONDITION_CODES[latest_data_from_sensor['condition_text_displayed']]
+        else:
+            condition = latest_data_from_sensor['condition_text_displayed']
+
         timestamp = latest_data_from_sensor["timestamp"]
         timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f")
         timestamp = timestamp.replace(tzinfo=tz)
@@ -86,14 +80,14 @@ def main():
             last_message_date, last_message_grip = check_stored_data(conn, sensor)
             # handling the case of a new sensor, we just tweet some boilerplate text
             if last_message_date is None or last_message_grip is None:
-                tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {latest_data_from_sensor['condition_text_displayed']}."
+                tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {condition}."
             # We will not tweet more often than every 30 minutes for every sensor
             elif now - last_message_date.replace(tzinfo=tz) > timedelta(
                 minutes=30
             ):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
-                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \n Current roadway condition is {latest_data_from_sensor['condition_text_displayed']}."
+                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \n Current roadway condition is {condition}."
         # checking if we have something to tweet
         if tweet_text:
             print(tweet_text)
