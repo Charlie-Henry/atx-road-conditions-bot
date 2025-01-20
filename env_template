@@ -1,0 +1,9 @@
+# bluesky
+BSKY_HANDLE=
+BSKY_PASSWORD=
+
+# postgres
+DB_DATABASE=
+DB_HOST=
+DB_PASSWORD=
+DB_USER=
