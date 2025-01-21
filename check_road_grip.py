@@ -17,6 +17,7 @@ HOST = os.getenv("DB_HOST")
 # bluesky login
 BSKY_HANDLE = os.getenv("BSKY_HANDLE")
 BSKY_PASSWORD = os.getenv("BSKY_PASSWORD")
+BSKY_SESSION = os.getenv("BSKY_SESSION")
 
 # Austin is in central timezone
 tz = ZoneInfo("America/Chicago")
@@ -55,7 +56,8 @@ def main():
 
     # Logging into bsky
     client = Client()
-    client.login(login=BSKY_HANDLE, password=BSKY_PASSWORD)
+    # client.login(login=BSKY_HANDLE, password=BSKY_PASSWORD)
+    client.login(session_string=BSKY_SESSION)
 
     # Get the current time
     now = datetime.now(tz)
