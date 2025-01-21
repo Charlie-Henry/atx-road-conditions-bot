@@ -3,21 +3,16 @@ import requests
 from zoneinfo import ZoneInfo
 import os
 
-from atproto import Client
 import psycopg2
 
 from config import SENSOR_NAMES, CONDITION_CODES
+from bsky_utils import login_bsky
 
 # postgres DB info
 USER = os.getenv("DB_USER")
 PASSWORD = os.getenv("DB_PASSWORD")
 DATABASE = os.getenv("DB_DATABASE")
 HOST = os.getenv("DB_HOST")
-
-# bluesky login
-BSKY_HANDLE = os.getenv("BSKY_HANDLE")
-BSKY_PASSWORD = os.getenv("BSKY_PASSWORD")
-BSKY_SESSION = os.getenv("BSKY_SESSION")
 
 # Austin is in central timezone
 tz = ZoneInfo("America/Chicago")
@@ -54,10 +49,8 @@ def main():
     # connecting to postgres DB
     conn = psycopg2.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD)
 
-    # Logging into bsky
-    client = Client()
-    # client.login(login=BSKY_HANDLE, password=BSKY_PASSWORD)
-    client.login(session_string=BSKY_SESSION)
+    # Log into bluesky
+    bsky_client = login_bsky(conn)
 
     # Get the current time
     now = datetime.now(tz)
@@ -93,7 +86,7 @@ def main():
         # checking if we have something to tweet
         if tweet_text:
             print(tweet_text)
-            post = client.send_post(tweet_text)
+            post = bsky_client.send_post(tweet_text)
             update_stored_data(conn, sensor, now, latest_data_from_sensor["grip_text"])
         else:
             print("Nothing new to tweet, did nothing.")
