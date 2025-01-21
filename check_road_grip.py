@@ -87,7 +87,7 @@ def main():
             ):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
-                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \n Current roadway condition is {condition}."
+                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is {condition}."
         # checking if we have something to tweet
         if tweet_text:
             print(tweet_text)
