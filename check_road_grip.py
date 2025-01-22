@@ -49,14 +49,11 @@ def main():
     # connecting to postgres DB
     conn = psycopg2.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD)
 
-    # Log into bluesky
-    bsky_client = login_bsky(conn)
-
     # Get the current time
     now = datetime.now(tz)
     # Calculate the time 10 minutes ago
     ten_minutes_ago = now - timedelta(minutes=10)
-
+    bsky_client = None
     for sensor in SENSOR_NAMES:
         tweet_text = None
         latest_data_from_sensor = get_latest_data_from_sensor(sensor)
@@ -85,6 +82,9 @@ def main():
                     tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is {condition}."
         # checking if we have something to tweet
         if tweet_text:
+            if not bsky_client:
+                # Log into bluesky
+                bsky_client = login_bsky(conn)
             print(tweet_text)
             post = bsky_client.send_post(tweet_text)
             update_stored_data(conn, sensor, now, latest_data_from_sensor["grip_text"])
