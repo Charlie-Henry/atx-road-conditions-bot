@@ -1,6 +1,6 @@
 import os
 
-from atproto import Client
+from atproto import Client, models
 import atproto_client
 
 # bluesky login
@@ -25,6 +25,19 @@ def store_session_string(conn, session_string):
     cur.execute(query)
     conn.commit()
     cur.close()
+
+
+def upload_image(client, image_data):
+    upload = client.upload_blob(image_data)
+    images = [
+        models.AppBskyEmbedImages.Image(
+            alt="screenshot from a traffic camera nearby",
+            image=upload.blob,
+            aspectRatio={"width": 1920, "height": 1080},
+        )
+    ]
+    embed = models.AppBskyEmbedImages.Main(images=images)
+    return embed
 
 
 def login_bsky(conn):

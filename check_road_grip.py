@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from PIL import Image
+from io import BytesIO
 import requests
 from zoneinfo import ZoneInfo
 import os
@@ -6,7 +8,7 @@ import os
 import psycopg2
 
 from config import SENSOR_NAMES, CONDITION_CODES
-from bsky_utils import login_bsky
+from bsky_utils import login_bsky, upload_image
 
 # postgres DB info
 USER = os.getenv("DB_USER")
@@ -45,6 +47,20 @@ def update_stored_data(conn, sensor, tweet_time, grip):
     cur.close()
 
 
+def get_cam_image(url):
+    res = requests.get(url)
+    print(f"image retrieved with status: {res.status_code}")
+    if res.status_code == 200:
+        image_data = res.content
+        image = Image.open(BytesIO(image_data))
+        # Check if it's exactly 1920x1080, the placeholder "unavailable" image is smaller.
+        if image.size != (1920, 1080):
+            print("Image is not 1920x1080. Skipping uploading image.")
+            return None
+        return image_data
+    return None
+
+
 def main():
     # connecting to postgres DB
     conn = psycopg2.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD)
@@ -57,10 +73,12 @@ def main():
     for sensor in SENSOR_NAMES:
         tweet_text = None
         latest_data_from_sensor = get_latest_data_from_sensor(sensor)
-        if latest_data_from_sensor['condition_text_displayed'] in CONDITION_CODES:
-            condition = CONDITION_CODES[latest_data_from_sensor['condition_text_displayed']]
+        if latest_data_from_sensor["condition_text_displayed"] in CONDITION_CODES:
+            condition = CONDITION_CODES[
+                latest_data_from_sensor["condition_text_displayed"]
+            ]
         else:
-            condition = latest_data_from_sensor['condition_text_displayed']
+            condition = latest_data_from_sensor["condition_text_displayed"]
 
         timestamp = latest_data_from_sensor["timestamp"]
         timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f")
@@ -74,9 +92,7 @@ def main():
             if last_message_date is None or last_message_grip is None:
                 tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {condition}."
             # We will not tweet more often than every 30 minutes for every sensor
-            elif now - last_message_date.replace(tzinfo=tz) > timedelta(
-                minutes=30
-            ):
+            elif now - last_message_date.replace(tzinfo=tz) > timedelta(minutes=30):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
                     tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is {condition}."
@@ -86,7 +102,12 @@ def main():
                 # Log into bluesky
                 bsky_client = login_bsky(conn)
             print(tweet_text)
-            post = bsky_client.send_post(tweet_text)
+            image_data = get_cam_image(sensor["cctv_url"])
+            if image_data:
+                embed = upload_image(bsky_client, image_data)
+            else:
+                embed = None
+            post = bsky_client.send_post(tweet_text, embed=embed)
             update_stored_data(conn, sensor, now, latest_data_from_sensor["grip_text"])
         else:
             print("Nothing new to tweet, did nothing.")

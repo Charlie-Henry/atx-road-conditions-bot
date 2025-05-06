@@ -2,14 +2,17 @@ SENSOR_NAMES = [
     {
         "id": "2",
         "name": "FM 2222 RD / LAKEWOOD DR",
+        "cctv_url": "https://cctv.austinmobility.io/image/1136.jpg",
     },
     {
         "id": "3",
         "name": "LAKELINE BLVD / 183 HWY SVRD",
+        "cctv_url": "https://cctv.austinmobility.io/image/1018.jpg",
     },
     {
         "id": "4",
         "name": "BEN WHITE BLVD SVRD / BANISTER LN",
+        "cctv_url": "https://cctv.austinmobility.io/image/962.jpg",
     },
 ]
 
