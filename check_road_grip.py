@@ -98,6 +98,9 @@ def main():
         if timestamp >= ten_minutes_ago:
             # Retrieving when we last tweeted about this sensor data
             last_message_date, last_message_grip = check_stored_data(conn, sensor)
+            print(
+                f"Sensor ID: {sensor['id']}, Current grip: {latest_data_from_sensor['grip_text']}, Stored grip: {last_message_grip}"
+            )
             # handling the case of a new sensor, we just tweet some boilerplate text
             if last_message_date is None or last_message_grip is None:
                 tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {condition}."
