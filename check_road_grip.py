@@ -16,6 +16,9 @@ PASSWORD = os.getenv("DB_PASSWORD")
 DATABASE = os.getenv("DB_DATABASE")
 HOST = os.getenv("DB_HOST")
 
+# Socrata app token (not super necessary unless you're trying to avoid getting timed out)
+APP_TOKEN = os.getenv("APP_TOKEN")
+
 # Austin is in central timezone
 tz = ZoneInfo("America/Chicago")
 
@@ -24,7 +27,14 @@ API_URL = "https://data.austintexas.gov/resource/ypbq-i42h.json?$order=timestamp
 
 
 def get_latest_data_from_sensor(sensor):
-    response = requests.get(API_URL + f"&$where=sensor_id={sensor['id']}")
+    if APP_TOKEN:
+        headers = {"X-App-Token": APP_TOKEN}
+    else:
+        headers = None
+        print("No open data portal app token supplied.")
+    response = requests.get(
+        API_URL + f"&$where=sensor_id={sensor['id']}", headers=headers
+    )
     return response.json()[0]
 
 
@@ -92,7 +102,10 @@ def main():
             if last_message_date is None or last_message_grip is None:
                 tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {condition}."
             # We will not tweet more often than every 30 minutes for every sensor, unless the grip is poor
-            elif now - last_message_date.replace(tzinfo=tz) > timedelta(minutes=30) or latest_data_from_sensor["grip_text"] == "POOR":
+            elif (
+                now - last_message_date.replace(tzinfo=tz) > timedelta(minutes=30)
+                or latest_data_from_sensor["grip_text"] == "POOR"
+            ):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
                     tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is {condition}."
