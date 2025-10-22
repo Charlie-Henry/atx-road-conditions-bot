@@ -35,6 +35,7 @@ def get_latest_data_from_sensor(sensor):
     response = requests.get(
         API_URL + f"&$where=sensor_id={sensor['id']}", headers=headers
     )
+    response.raise_for_status()
     return response.json()[0]
 
 
