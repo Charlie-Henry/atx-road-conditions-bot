@@ -104,7 +104,7 @@ def main():
             )
             # handling the case of a new sensor, we just tweet some boilerplate text
             if last_message_date is None or last_message_grip is None:
-                tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}. \nCurrent roadway condition is {condition}."
+                tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}. \nCurrent roadway condition is: {condition}."
             # We will not tweet more often than every 30 minutes for every sensor, unless the grip is poor
             elif (
                 now - last_message_date.replace(tzinfo=tz) > timedelta(minutes=30)
@@ -112,7 +112,7 @@ def main():
             ):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
-                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is {condition}."
+                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is: {condition}."
         # checking if we have something to tweet
         if tweet_text:
             if not bsky_client:
