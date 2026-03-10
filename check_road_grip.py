@@ -88,6 +88,10 @@ def main():
             condition = CONDITION_CODES[
                 latest_data_from_sensor["condition_text_displayed"]
             ]
+            # Handling error condition codes, we just ignore these updates completely.
+            if condition == "error":
+                print(f"Error condition code from sensor ID: {sensor['id']}, did nothing.")
+                continue
         else:
             condition = latest_data_from_sensor["condition_text_displayed"]
 
