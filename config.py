@@ -7,7 +7,7 @@ SENSOR_NAMES = [
     {
         "id": "3",
         "name": "Lakeline Boulevard at US-183",
-        "cctv_url": "https://cctv.austinmobility.io/image/1018.jpg",
+        "cctv_url": "https://cctv.austinmobility.io/image/1013.jpg",
     },
     {
         "id": "4",
