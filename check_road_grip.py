@@ -4,6 +4,7 @@ from io import BytesIO
 import requests
 from zoneinfo import ZoneInfo
 import os
+import sys
 
 import psycopg2
 
@@ -35,7 +36,13 @@ def get_latest_data_from_sensor(sensor):
     response = requests.get(
         API_URL + f"&$where=sensor_id={sensor['id']}", headers=headers
     )
-    response.raise_for_status()
+    if response.status_code != 200:
+        if 400 <= response.status_code < 500:
+            response.raise_for_status() # 400 errors will be raised as exceptions
+        elif 500 <= response.status_code < 600:
+            # From time to time we get 500 errors from the open data portal API.
+            # Don't raise an error and just exit quietly so I don't get email alerts by my ETL provider.
+            sys.exit(0)
     return response.json()[0]
 
 
