@@ -42,6 +42,7 @@ def get_latest_data_from_sensor(sensor):
         elif 500 <= response.status_code < 600:
             # From time to time we get 500 errors from the open data portal API.
             # Don't raise an error and just exit quietly so I don't get email alerts by my ETL provider.
+            print(f"{response.status_code} error from open data portal API, exiting quietly.")
             sys.exit(0)
     return response.json()[0]
 
