@@ -2,7 +2,7 @@ SENSOR_NAMES = [
     {
         "id": "2",
         "name": "FM 2222 at Lakewood Drive",
-        "cctv_url": "https://cctv.austinmobility.io/image/1136.jpg",
+        "cctv_url": "https://cctv.austinmobility.io/image/1531.jpg",
     },
     {
         "id": "3",
