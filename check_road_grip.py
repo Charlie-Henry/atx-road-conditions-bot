@@ -1,3 +1,4 @@
+from atproto import client_utils
 from datetime import datetime, timedelta
 from PIL import Image
 from io import BytesIO
@@ -5,6 +6,7 @@ import requests
 from zoneinfo import ZoneInfo
 import os
 import sys
+
 
 import psycopg2
 
@@ -41,11 +43,13 @@ def get_latest_data_from_sensor(sensor):
     )
     if response.status_code != 200:
         if 400 <= response.status_code < 500:
-            response.raise_for_status() # 400 errors will be raised as exceptions
+            response.raise_for_status()  # 400 errors will be raised as exceptions
         elif 500 <= response.status_code < 600:
             # From time to time we get 500 errors from the open data portal API.
             # Don't raise an error and just exit quietly so I don't get email alerts by my ETL provider.
-            print(f"{response.status_code} error from open data portal API, exiting quietly.")
+            print(
+                f"{response.status_code} error from open data portal API, exiting quietly."
+            )
             sys.exit(0)
     return response.json()[0]
 
@@ -93,7 +97,7 @@ def main():
     ten_minutes_ago = now - timedelta(minutes=10)
     bsky_client = None
     for sensor in SENSOR_NAMES:
-        tweet_text = None
+        text = None
         latest_data_from_sensor = get_latest_data_from_sensor(sensor)
         if latest_data_from_sensor["condition_text_displayed"] in CONDITION_CODES:
             condition = CONDITION_CODES[
@@ -101,7 +105,9 @@ def main():
             ]
             # Handling error condition codes, we just ignore these updates completely.
             if condition == "error":
-                print(f"Error condition code from sensor ID: {sensor['id']}, did nothing.")
+                print(
+                    f"Error condition code from sensor ID: {sensor['id']}, did nothing."
+                )
                 continue
         else:
             condition = latest_data_from_sensor["condition_text_displayed"]
@@ -119,8 +125,16 @@ def main():
             )
             # handling the case of a new sensor, we just tweet some boilerplate text
             if last_message_date is None or last_message_grip is None:
-                tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}. \nCurrent roadway condition is: {condition}."
-                tweet_text += f"\nMore info: {DASHBOARD_URL}/s/{sensor['id']}"
+                text = client_utils.TextBuilder()
+                text.text(
+                    f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}.\n"
+                    f"Current roadway condition is: {condition}.\n \n"
+                    "More info: "
+                )
+                text.link(
+                    f"{DASHBOARD_URL}/s/{sensor['id']}",
+                    f"{DASHBOARD_URL}/s/{sensor['id']}",
+                )
             # We will not tweet more often than every 30 minutes for every sensor, unless the grip is poor
             elif (
                 now - last_message_date.replace(tzinfo=tz) > timedelta(minutes=30)
@@ -128,20 +142,28 @@ def main():
             ):
                 # Checking for a change in the road grip status
                 if last_message_grip != latest_data_from_sensor["grip_text"]:
-                    tweet_text = f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}, was previously {last_message_grip}. \nCurrent roadway condition is: {condition}."
-                    tweet_text += f"\nMore info: {DASHBOARD_URL}/s/{sensor['id']}"
+                    text = client_utils.TextBuilder()
+                    text.text(
+                        f"{latest_data_from_sensor['grip_text']} roadway grip reported at: {sensor['name']}, "
+                        f"was previously {last_message_grip}.\n"
+                        f"Current roadway condition is: {condition}.\n \n"
+                        "More info: "
+                    )
+                    text.link(
+                        f"{DASHBOARD_URL}/s/{sensor['id']}",
+                        f"{DASHBOARD_URL}/s/{sensor['id']}",
+                    )
         # checking if we have something to tweet
-        if tweet_text:
+        if text:
             if not bsky_client:
                 # Log into bluesky
                 bsky_client = login_bsky(conn)
-            print(tweet_text)
             image_data = get_cam_image(sensor["cctv_url"])
             if image_data:
                 embed = upload_image(bsky_client, image_data)
             else:
                 embed = None
-            post = bsky_client.send_post(tweet_text, embed=embed)
+            post = bsky_client.send_post(text, embed=embed)
             update_stored_data(conn, sensor, now, latest_data_from_sensor["grip_text"])
         else:
             print("Nothing new to tweet, did nothing.")
